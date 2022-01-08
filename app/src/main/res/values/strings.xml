@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">airBNB</string>
+    <string name="ListOfRoomText">여러개의 숙소</string>
 </resources>
