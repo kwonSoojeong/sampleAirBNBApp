@@ -4,6 +4,7 @@ import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.viewpager2.widget.ViewPager2
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.*
 import com.naver.maps.map.overlay.Marker
@@ -23,12 +24,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var naverMap: NaverMap
     private lateinit var locationSource: FusedLocationSource
 
+    private val viewpager: ViewPager2 by lazy {
+        findViewById(R.id.houseViewpager)
+    }
+    private val viewPagerAdapter = HouseViewPagerAdapter()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         mapView.onCreate(savedInstanceState)
         mapView.getMapAsync(this)
+
+
+        viewpager.adapter = viewPagerAdapter
     }
 
     override fun onStart() {
@@ -82,7 +91,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         //현위치 버튼 활성화
         map.uiSettings.isLocationButtonEnabled = true
 
-
         //맵이 모두 그려진 이후에 데이터를 가져오겠다...
         getHouseListFromAPI()
     }
@@ -103,6 +111,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                         response.body()?.let { dto ->
                             markingHouseList(dto.items)
+                            viewPagerAdapter.submitList(dto.items)
                         }
                     }
 
@@ -123,7 +132,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             )
             marker.map = naverMap
             marker.tag = house.title
-            marker.icon = MarkerIcons.BLUE
+//            marker.icon = MarkerIcons.BLUE
             marker.iconTintColor = Color.RED
         }
     }
