@@ -1,8 +1,10 @@
 package com.crystal.airbnb
 
+import android.content.Intent
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -30,15 +32,25 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, Overlay.OnClickLis
     private val viewpager: ViewPager2 by lazy {
         findViewById(R.id.houseViewpager)
     }
-    private val viewPagerAdapter = HouseViewPagerAdapter()
+    private val viewPagerAdapter = HouseViewPagerAdapter(itemClicked =  {
+        //외부로 공유하기
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, "[지금 이 가격에 예약하세요!!] ${it.title}, ${it.price} 사진 보기 : ${it.imgUrl}")
+            type = "text/plain"
+        }
+        startActivity(Intent.createChooser(intent, null))
 
+    })
     private val houseRecyclerView: RecyclerView by lazy{
         findViewById(R.id.BottomSheetHouseRecyclerView)
     }
     private val houseRecyclerAdapter = HouseRecyclerViewAdapter()
-
     private val currentLocationButton: LocationButtonView by lazy {
         findViewById(R.id.currentLocationButton)
+    }
+    private val bottomSheetTitleTextView: TextView by lazy {
+        findViewById(R.id.roomListTextView)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -139,7 +151,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, Overlay.OnClickLis
                             markingHouseList(dto.items)
                             viewPagerAdapter.submitList(dto.items)
                             houseRecyclerAdapter.submitList(dto.items)
-                            houseRecyclerAdapter.notifyDataSetChanged()
+//                            houseRecyclerAdapter.notifyDataSetChanged()
+                            bottomSheetTitleTextView.text = "${dto.items.size} 의 숙소"
                         }
                     }
 
