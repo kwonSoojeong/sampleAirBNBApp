@@ -3,20 +3,23 @@ package com.crystal.airbnb
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.*
 import com.naver.maps.map.overlay.Marker
+import com.naver.maps.map.overlay.Overlay
 import com.naver.maps.map.util.FusedLocationSource
 import com.naver.maps.map.util.MarkerIcons
+import com.naver.maps.map.widget.LocationButtonView
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, Overlay.OnClickListener{
 
     private val mapView: MapView by lazy {
         findViewById(R.id.mapView)
@@ -29,6 +32,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
     private val viewPagerAdapter = HouseViewPagerAdapter()
 
+    private val houseRecyclerView: RecyclerView by lazy{
+        findViewById(R.id.BottomSheetHouseRecyclerView)
+    }
+    private val houseRecyclerAdapter = HouseRecyclerViewAdapter()
+
+    private val currentLocationButton: LocationButtonView by lazy {
+        findViewById(R.id.currentLocationButton)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -38,6 +50,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
         viewpager.adapter = viewPagerAdapter
+
+        houseRecyclerView.adapter = houseRecyclerAdapter
+        houseRecyclerView.layoutManager = LinearLayoutManager(this)
+
+        viewpager.registerOnPageChangeCallback(object: ViewPager2.OnPageChangeCallback(){
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                val selectedHouseModel = viewPagerAdapter.currentList[position]
+                val cameraUpdate = CameraUpdate.scrollTo(LatLng(selectedHouseModel.lat, selectedHouseModel.lng))
+                naverMap.moveCamera(cameraUpdate)
+            }
+        })
     }
 
     override fun onStart() {
@@ -89,7 +113,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         map.locationSource = locationSource
 
         //현위치 버튼 활성화
-        map.uiSettings.isLocationButtonEnabled = true
+//        map.uiSettings.isLocationButtonEnabled = true
+
+        currentLocationButton.map = naverMap //activity_main.xml에 있는 버튼으로 대체
 
         //맵이 모두 그려진 이후에 데이터를 가져오겠다...
         getHouseListFromAPI()
@@ -112,6 +138,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         response.body()?.let { dto ->
                             markingHouseList(dto.items)
                             viewPagerAdapter.submitList(dto.items)
+                            houseRecyclerAdapter.submitList(dto.items)
+                            houseRecyclerAdapter.notifyDataSetChanged()
                         }
                     }
 
@@ -130,9 +158,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 house.lat,
                 house.lng
             )
+            marker.onClickListener = this
             marker.map = naverMap
-            marker.tag = house.title
-//            marker.icon = MarkerIcons.BLUE
+            marker.tag = house.id
+            marker.icon = MarkerIcons.BLACK
             marker.iconTintColor = Color.RED
         }
     }
@@ -157,6 +186,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1000
+    }
+
+    override fun onClick(overlay: Overlay): Boolean {
+
+        val selectedModel = viewPagerAdapter.currentList.firstOrNull {
+            it.id == overlay.tag
+        }
+        selectedModel?.let {
+            val position = viewPagerAdapter.currentList.indexOf(it)
+            viewpager.currentItem = position
+        }
+        return true
     }
 
 }
